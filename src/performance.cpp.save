@@ -1,0 +1,45 @@
+#include "../include/performance.h"
+#include <iostream>
+
+using namespace std;
+
+// Initialize static members
+size_t PerformanceModule::totalMemoryUsed = 0;
+size_t PerformanceModule::pageHit = 0;
+size_t PerformanceModule::pageMiss = 0;
+
+PerformanceModule::PerformanceModule(MemoryManager& mm) : memoryManager(mm) {}
+
+void PerformanceModule::memoryAllocation(TaskModule* task)  	{
+    bool allocated = task->getPhysicalAddress() >= 0;
+
+    if (allocated) {
+        recordPageHit();
+    } else {
+        recordPageMiss();
+        int physicalAddress = memoryManager.allocatePages(task->getSize() / PAGE_SIZE, task->getId());
+        if (physicalAddress != -1) {
+            task->updatePageTable(task->getId(), physicalAddress);
+            totalMemoryUsed += task->getSize();
+        }
+    }
+}
+
+void PerformanceModule::reportPerformance() {
+    cout << "Total Memory Used: " << totalMemoryUsed << " bytes" << endl;
+    cout << "Page Hits: " << pageHit << endl;
+    cout << "Page Misses: " << pageMiss << endl;
+    if (pageHit + pageMiss > 0) {
+        cout << "Hit Ratio: " << static_cast<double>(pageHit) / (pageHit + pageMiss) << endl;
+    } else {
+        cout << "Hit Ratio: N/A" << endl;
+    }
+}
+
+void PerformanceModule::recordPageHit() {
+    pageHit++;
+}
+
+void PerformanceModule::recordPageMiss() {
+    pageMiss++;
+}
